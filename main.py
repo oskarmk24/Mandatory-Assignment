@@ -5,7 +5,7 @@ class Book:
         self.title = title
         self.author = author
         self.isbn = isbn
-        self.is_available = True # Feature 2: Availability check
+        self.is_available = True
 
 class User:
     def __init__(self, user_id, name, user_type):
@@ -77,7 +77,7 @@ class LibrarySystem:
                 return f"'{book.title}' returned and is now available for anyone."
         return "Book not found."
 
-
+# Demo with hardcoded values
 if __name__ == "__main__":
     library = LibrarySystem()
 
