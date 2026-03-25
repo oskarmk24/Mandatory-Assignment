@@ -45,14 +45,22 @@ class LibrarySystem:
 
         return results
 
-    def find_book_by_title(self, title):
-        """Find first book that matches all or part of the title."""
+    def find_books_by_title(self, title):
+        """Find all books that match all or part of the title."""
         title = title.lower().strip()
+        matches = []
 
         for book in self.catalog_list:
             if title in book.title.lower():
-                return book
+                matches.append(book)
 
+        return matches
+
+    def find_book_by_title(self, title):
+        """Find the first matching book by title."""
+        matches = self.find_books_by_title(title)
+        if matches:
+            return matches[0]
         return None
 
     def find_book_by_isbn(self, isbn):
@@ -60,8 +68,22 @@ class LibrarySystem:
         return self.catalog_isbn.get(isbn, None)
 
     def borrow_book_by_title(self, title, user):
+        """Borrow the first matching book by title."""
         book = self.find_book_by_title(title)
+        return self.borrow_book(book, user)
 
+    def add_to_waitlist_by_title(self, title, user):
+        """Add user to waitlist for the first matching book by title."""
+        book = self.find_book_by_title(title)
+        return self.add_to_waitlist(book, user)
+
+    def return_book_by_title(self, title):
+        """Return the first matching book by title."""
+        book = self.find_book_by_title(title)
+        return self.return_book(book)
+
+    def borrow_book(self, book, user):
+        """Borrow a selected book object."""
         if not book:
             return "Book not found."
 
@@ -72,18 +94,23 @@ class LibrarySystem:
         else:
             return f"'{book.title}' is currently borrowed. Please join the waitlist."
 
-    def add_to_waitlist_by_title(self, title, user):
-        book = self.find_book_by_title(title)
-
+    def add_to_waitlist(self, book, user):
+        """Add a user to the selected book's waitlist, avoiding duplicates."""
         if not book:
             return "Book not found."
+
+        if book.is_available:
+            return f"'{book.title}' is available. You can borrow it instead of joining the waitlist."
+
+        for waiting_user in self.waitlists[book.isbn]:
+            if waiting_user.user_id == user.user_id:
+                return f"{user.name} is already in the waitlist for '{book.title}'."
 
         self.waitlists[book.isbn].append(user)
         return f"{user.name} added to waitlist for '{book.title}'."
 
-    def return_book_by_title(self, title):
-        book = self.find_book_by_title(title)
-
+    def return_book(self, book):
+        """Return a selected book object."""
         if not book:
             return "Book not found."
 
@@ -97,29 +124,31 @@ class LibrarySystem:
             book.borrowed_by = None
             return f"'{book.title}' is now available."
 
-    def add_to_waitlist(self, isbn, user):
-        """Adds a user to the queue for a specific book."""
-        if isbn in self.waitlists:
-            self.waitlists[isbn].append(user)
-            return f"{user.name} added to the waitlist for '{self.find_book_by_isbn(isbn).title}'."
-        return "Book not found."
+    def add_to_waitlist_by_isbn(self, isbn, user):
+        """Adds a user to the queue for a specific book by ISBN."""
+        book = self.find_book_by_isbn(isbn)
+
+        if not book:
+            return "Book not found."
+
+        return self.add_to_waitlist(book, user)
 
     def assign_next_user(self, isbn):
         """Automatic assignment to next user when the book is returned."""
         book = self.find_book_by_isbn(isbn)
 
-        if book:
-            if self.waitlists[isbn]:
-                next_user = self.waitlists[isbn].popleft()
-                book.borrowed_by = next_user
-                book.is_available = False
-                return f"'{book.title}' returned and automatically assigned to {next_user.name} from the waitlist."
-            else:
-                book.is_available = True
-                book.borrowed_by = None
-                return f"'{book.title}' returned and is now available for anyone."
+        if not book:
+            return "Book not found."
 
-        return "Book not found."
+        if self.waitlists[isbn]:
+            next_user = self.waitlists[isbn].popleft()
+            book.borrowed_by = next_user
+            book.is_available = False
+            return f"'{book.title}' returned and automatically assigned to {next_user.name} from the waitlist."
+        else:
+            book.is_available = True
+            book.borrowed_by = None
+            return f"'{book.title}' returned and is now available for anyone."
 
     def show_waitlists(self):
         """Shows all books that currently have users in the waitlist."""
@@ -128,10 +157,41 @@ class LibrarySystem:
         for isbn, queue in self.waitlists.items():
             if queue:
                 book = self.find_book_by_isbn(isbn)
-                waiting_users = [f"{i + 1}. {user.name} ({user.user_type})" for i, user in enumerate(queue)]
+                waiting_users = [
+                    f"{i + 1}. {user.name} ({user.user_type})"
+                    for i, user in enumerate(queue)
+                ]
                 books_with_waitlists.append((book, waiting_users))
 
         return books_with_waitlists
+
+
+def select_book_from_matches(matches):
+    """Let the user choose one book from a list of matches."""
+    if not matches:
+        return None
+
+    if len(matches) == 1:
+        return matches[0]
+
+    print("\nMultiple books found:")
+    for i, book in enumerate(matches, start=1):
+        status = "Available" if book.is_available else f"Borrowed by {book.borrowed_by.name}"
+        print(f"{i}. {book.title} by {book.author} | ISBN: {book.isbn} | {status}")
+
+    choice = input("Choose book number: ").strip()
+
+    if not choice.isdigit():
+        print("Invalid choice.")
+        return None
+
+    choice_num = int(choice)
+
+    if 1 <= choice_num <= len(matches):
+        return matches[choice_num - 1]
+
+    print("Invalid choice.")
+    return None
 
 
 def setup_demo_state(library, users):
@@ -167,8 +227,8 @@ def setup_demo_state(library, users):
         library.waitlists[book3.isbn].append(users["3"])  # Karoline
 
 
-# Prototype with hardcoded values for demonstration
 def run_prototype():
+    """Prototype with hardcoded values for demonstration."""
     library = LibrarySystem()
 
     # Hardcoded demo data
@@ -188,7 +248,7 @@ def run_prototype():
         "2": User("U2", "Anna", "student"),
         "3": User("U3", "Karoline", "student"),
         "4": User("U4", "Milana", "researcher"),
-        "5": User("U5", "Helle", "library staff")
+        "5": User("U5", "Helle", "library staff"),
     }
 
     setup_demo_state(library, users)
@@ -203,7 +263,7 @@ def run_prototype():
         print("6 Show waitlists")
         print("0 Exit")
 
-        choice = input("Choice: ")
+        choice = input("Choice: ").strip()
 
         if choice == "1":
             title = input("Enter title keyword: ")
@@ -218,25 +278,43 @@ def run_prototype():
 
         elif choice == "2":
             title = input("Enter title: ")
-            user_choice = input("User (1, 2, 3, 4 or 5): ")
+            user_choice = input("User (1, 2, 3, 4 or 5): ").strip()
 
             if user_choice in users:
-                print(library.borrow_book_by_title(title, users[user_choice]))
+                matches = library.find_books_by_title(title)
+                selected_book = select_book_from_matches(matches)
+
+                if selected_book:
+                    print(library.borrow_book(selected_book, users[user_choice]))
+                else:
+                    print("No valid book selected.")
             else:
                 print("Invalid user.")
 
         elif choice == "3":
             title = input("Enter title: ")
-            user_choice = input("User (1, 2, 3, 4 or 5): ")
+            user_choice = input("User (1, 2, 3, 4 or 5): ").strip()
 
             if user_choice in users:
-                print(library.add_to_waitlist_by_title(title, users[user_choice]))
+                matches = library.find_books_by_title(title)
+                selected_book = select_book_from_matches(matches)
+
+                if selected_book:
+                    print(library.add_to_waitlist(selected_book, users[user_choice]))
+                else:
+                    print("No valid book selected.")
             else:
                 print("Invalid user.")
 
         elif choice == "4":
             title = input("Enter title: ")
-            print(library.return_book_by_title(title))
+            matches = library.find_books_by_title(title)
+            selected_book = select_book_from_matches(matches)
+
+            if selected_book:
+                print(library.return_book(selected_book))
+            else:
+                print("No valid book selected.")
 
         elif choice == "5":
             print("\n--- CATALOG ---")
