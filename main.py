@@ -266,8 +266,13 @@ def run_prototype():
         choice = input("Choice: ").strip()
 
         if choice == "1":
-            title = input("Enter title keyword: ")
-            results = library.search_by_title(title)
+            query = input("Enter title keyword or ISBN: ").strip()
+            book_by_isbn = library.find_book_by_isbn(query)
+            
+            if book_by_isbn:
+                results = [book_by_isbn]
+            else:
+                results = library.search_by_title(query)
 
             if results:
                 for b in results:
@@ -277,11 +282,12 @@ def run_prototype():
                 print("No books found.")
 
         elif choice == "2":
-            title = input("Enter title: ")
+            query = input("Enter title or ISBN: ").strip()
             user_choice = input("User (1, 2, 3, 4 or 5): ").strip()
 
             if user_choice in users:
-                matches = library.find_books_by_title(title)
+                book_by_isbn = library.find_book_by_isbn(query)
+                matches = [book_by_isbn] if book_by_isbn else library.find_books_by_title(query)
                 selected_book = select_book_from_matches(matches)
 
                 if selected_book:
@@ -292,11 +298,12 @@ def run_prototype():
                 print("Invalid user.")
 
         elif choice == "3":
-            title = input("Enter title: ")
+            query = input("Enter title or ISBN: ").strip()
             user_choice = input("User (1, 2, 3, 4 or 5): ").strip()
 
             if user_choice in users:
-                matches = library.find_books_by_title(title)
+                book_by_isbn = library.find_book_by_isbn(query)
+                matches = [book_by_isbn] if book_by_isbn else library.find_books_by_title(query)
                 selected_book = select_book_from_matches(matches)
 
                 if selected_book:
@@ -307,8 +314,9 @@ def run_prototype():
                 print("Invalid user.")
 
         elif choice == "4":
-            title = input("Enter title: ")
-            matches = library.find_books_by_title(title)
+            query = input("Enter title or ISBN: ").strip()
+            book_by_isbn = library.find_book_by_isbn(query)
+            matches = [book_by_isbn] if book_by_isbn else library.find_books_by_title(query)
             selected_book = select_book_from_matches(matches)
 
             if selected_book:
