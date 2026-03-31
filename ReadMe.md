@@ -84,13 +84,13 @@ The system runs as an interactive command-line application.
 
 ### Menu Options
 
-1. Search book 
-2. Borrow book
-3. Join waitlist 
-4. Return book 
-5. Show catalog 
-6. Show waitlists 
-0. Exit
+1\. Search book 
+2\. Borrow book
+3\. Join waitlist 
+4\. Return book 
+5\. Show catalog 
+6\. Show waitlists 
+0\. Exit
 
 Users can search by full or partial title, making the prototype more realistic. If multiple books match a search query, the user can select the correct book from a numbered list.
 
